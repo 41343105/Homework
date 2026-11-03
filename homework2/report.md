@@ -28,8 +28,6 @@
 ## 程式實作
 
 以下是完整程式碼：
-
-```cpp
 ```cpp
 #include <iostream>
 #include <cmath>
