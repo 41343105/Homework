@@ -8,7 +8,9 @@
 
 因為多項式裡面每一項都有係數和指數，所以我先使用 Term 來儲存每一項的資料，再使用 Polynomial 來處理整個多項式。
 
-根據老師上課的 PPT，Polynomial 使用動態陣列來儲存資料，並且將初始容量設定為 2。當陣列空間不足時，就需要建立新的陣列，把原本的資料複製過去，再繼續存放新的資料。
+根據老師上課的 PPT，Polynomial 使用動態陣列來儲存資料，並且將初始容量設定為 2。
+
+當陣列空間不足時，就需要建立新的陣列，把原本的資料複製過去，再繼續存放新的資料。
 
 這次也將輸入的部分改成可以在程式執行時自己輸入，不需要每次都修改程式裡面的資料。
 
@@ -27,6 +29,7 @@
 
 以下是完整程式碼：
 
+```cpp
 ```cpp
 #include <iostream>
 #include <cmath>
@@ -68,7 +71,6 @@ private:
     }
 
 public:
-
     Polynomial() {
         capacity = 2;
         terms = 0;
@@ -109,8 +111,9 @@ public:
     }
 
     void AddTerm(float coef, int exp) {
-        if (coef == 0 || exp < 0)
+        if (coef == 0 || exp < 0) {
             return;
+        }
 
         for (int i = 0; i < terms; i++) {
             if (termArray[i].exp == exp) {
@@ -129,6 +132,18 @@ public:
         }
 
         newTerm(coef, exp);
+
+        int i = terms - 1;
+
+        while (i > 0 &&
+               termArray[i].exp > termArray[i - 1].exp) {
+
+            Term temp = termArray[i];
+            termArray[i] = termArray[i - 1];
+            termArray[i - 1] = temp;
+
+            i--;
+        }
     }
 
     Polynomial Add(const Polynomial& poly) {
@@ -169,7 +184,7 @@ public:
         return result;
     }
 
-    float Eval(float x) {
+    float Eval(float x) const {
         float result = 0;
 
         for (int i = 0; i < terms; i++) {
@@ -186,35 +201,23 @@ public:
             return;
         }
 
-        int maxExp = 0;
-
         for (int i = 0; i < terms; i++) {
-            if (termArray[i].exp > maxExp) {
-                maxExp = termArray[i].exp;
-            }
-        }
+            float c = termArray[i].coef;
+            int e = termArray[i].exp;
 
-        bool first = true;
-
-        for (int e = maxExp; e >= 0; e--) {
-            for (int i = 0; i < terms; i++) {
-                if (termArray[i].exp == e) {
-                    float c = termArray[i].coef;
-
-                    if (!first) {
-                        if (c >= 0)
-                            cout << " + ";
-                        else
-                            cout << " - ";
-                    }
-                    else if (c < 0) {
-                        cout << "-";
-                    }
-
-                    cout << abs(c) << "x^" << e;
-                    first = false;
+            if (i > 0) {
+                if (c >= 0) {
+                    cout << " + ";
+                }
+                else {
+                    cout << " - ";
                 }
             }
+            else if (c < 0) {
+                cout << "-";
+            }
+
+            cout << abs(c) << "x^" << e;
         }
 
         cout << endl;
@@ -228,7 +231,6 @@ int main() {
     float coef;
     float x;
 
-    
     cout << "Enter degree of P: ";
     cin >> degree;
 
@@ -250,7 +252,6 @@ int main() {
         p.AddTerm(coef, i);
     }
 
-    
     cout << "Enter degree of Q: ";
     cin >> degree;
 
@@ -272,26 +273,22 @@ int main() {
         q.AddTerm(coef, i);
     }
 
-    
     cout << "\nP(x) = ";
     p.Print();
 
     cout << "Q(x) = ";
     q.Print();
 
-    
     Polynomial sum = p.Add(q);
 
     cout << "P(x) + Q(x) = ";
     sum.Print();
 
-   
     Polynomial product = p.Mult(q);
 
     cout << "P(x) * Q(x) = ";
     product.Print();
 
-  
     cout << "\nEnter x value: ";
     cin >> x;
 
@@ -308,6 +305,8 @@ int main() {
 
     return 0;
 }
+
+
 ```
 
 ## 效能分析
