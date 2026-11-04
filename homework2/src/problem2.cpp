@@ -1,10 +1,12 @@
 #include <iostream>
+#include <cmath>
 using namespace std;
 
 class Polynomial;
 
 class Term {
     friend class Polynomial;
+    friend ostream& operator<<(ostream& out, const Polynomial& p);
 
 private:
     float coef;
@@ -17,11 +19,11 @@ private:
     int capacity;
     int terms;
 
-    
-    void newTerm(float theCoef, int theExp) {
+    void newTerm(const float theCoef, const int theExp) {
+        if (theCoef == 0) return;
+
         if (terms >= capacity) {
             capacity *= 2;
-
             Term *temp = new Term[capacity];
 
             for (int i = 0; i < terms; i++) {
@@ -38,18 +40,15 @@ private:
     }
 
 public:
- 
     Polynomial() {
         capacity = 2;
         terms = 0;
         termArray = new Term[capacity];
     }
 
-  
     Polynomial(const Polynomial& p) {
         capacity = p.capacity;
         terms = p.terms;
-
         termArray = new Term[capacity];
 
         for (int i = 0; i < terms; i++) {
@@ -57,7 +56,6 @@ public:
         }
     }
 
-   
     Polynomial& operator=(const Polynomial& p) {
         if (this != &p) {
             Term *temp = new Term[p.capacity];
@@ -67,7 +65,6 @@ public:
             }
 
             delete[] termArray;
-
             termArray = temp;
             capacity = p.capacity;
             terms = p.terms;
@@ -76,15 +73,12 @@ public:
         return *this;
     }
 
-    
     ~Polynomial() {
         delete[] termArray;
     }
 
-    
     void AddTerm(float coef, int exp) {
-        if (coef == 0 || exp < 0)
-            return;
+        if (coef == 0 || exp < 0) return;
 
         for (int i = 0; i < terms; i++) {
             if (termArray[i].exp == exp) {
@@ -103,11 +97,20 @@ public:
         }
 
         newTerm(coef, exp);
+
+        
+        int i = terms - 1;
+
+        while (i > 0 && termArray[i].exp > termArray[i - 1].exp) {
+            Term temp = termArray[i];
+            termArray[i] = termArray[i - 1];
+            termArray[i - 1] = temp;
+            i--;
+        }
     }
 
-   
+    
     friend istream& operator>>(istream& in, Polynomial& p);
-
     friend ostream& operator<<(ostream& out, const Polynomial& p);
 };
 
@@ -119,10 +122,12 @@ istream& operator>>(istream& in, Polynomial& p) {
     in >> n;
 
     if (!in || n < 0) {
+        p.terms = 0;
         in.setstate(ios::failbit);
         return in;
     }
 
+   
     p.terms = 0;
 
     for (int i = 0; i < n; i++) {
@@ -152,11 +157,18 @@ ostream& operator<<(ostream& out, const Polynomial& p) {
     }
 
     for (int i = 0; i < p.terms; i++) {
-        if (i > 0)
-            out << " + ";
+        float c = p.termArray[i].coef;
+        int e = p.termArray[i].exp;
 
-        out << p.termArray[i].coef
-            << "x^" << p.termArray[i].exp;
+        if (i > 0) {
+            if (c >= 0) out << " + ";
+            else out << " - ";
+        }
+        else if (c < 0) {
+            out << "-";
+        }
+
+        out << std::abs(c) << "x^" << e;
     }
 
     return out;
