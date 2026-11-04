@@ -18,11 +18,11 @@ private:
     int capacity;
     int terms;
 
-    
-    void newTerm(float theCoef, int theExp) {
+    void newTerm(const float theCoef, const int theExp) {
+        if (theCoef == 0) return;
+
         if (terms >= capacity) {
             capacity *= 2;
-
             Term *temp = new Term[capacity];
 
             for (int i = 0; i < terms; i++) {
@@ -39,18 +39,15 @@ private:
     }
 
 public:
-    
     Polynomial() {
         capacity = 2;
         terms = 0;
         termArray = new Term[capacity];
     }
 
-  
     Polynomial(const Polynomial& p) {
         capacity = p.capacity;
         terms = p.terms;
-
         termArray = new Term[capacity];
 
         for (int i = 0; i < terms; i++) {
@@ -58,7 +55,6 @@ public:
         }
     }
 
-    
     Polynomial& operator=(const Polynomial& p) {
         if (this != &p) {
             Term *temp = new Term[p.capacity];
@@ -68,7 +64,6 @@ public:
             }
 
             delete[] termArray;
-
             termArray = temp;
             capacity = p.capacity;
             terms = p.terms;
@@ -77,15 +72,12 @@ public:
         return *this;
     }
 
-    
     ~Polynomial() {
         delete[] termArray;
     }
 
-    
     void AddTerm(float coef, int exp) {
-        if (coef == 0 || exp < 0)
-            return;
+        if (coef == 0 || exp < 0) return;
 
         for (int i = 0; i < terms; i++) {
             if (termArray[i].exp == exp) {
@@ -104,40 +96,66 @@ public:
         }
 
         newTerm(coef, exp);
+
+        
+        int i = terms - 1;
+
+        while (i > 0 && termArray[i].exp > termArray[i - 1].exp) {
+            Term temp = termArray[i];
+            termArray[i] = termArray[i - 1];
+            termArray[i - 1] = temp;
+            i--;
+        }
     }
 
-  
-    Polynomial Add(const Polynomial& poly) {
-        Polynomial result;
+    
+    Polynomial Add(Polynomial poly) const {
+        Polynomial c;
+        int aPos = 0;
+        int bPos = 0;
 
-        for (int i = 0; i < terms; i++) {
-            result.AddTerm(
-                termArray[i].coef,
-                termArray[i].exp
-            );
+        while (aPos < terms && bPos < poly.terms) {
+            if (termArray[aPos].exp == poly.termArray[bPos].exp) {
+                float t = termArray[aPos].coef + poly.termArray[bPos].coef;
+
+                if (t != 0) {
+                    c.newTerm(t, termArray[aPos].exp);
+                }
+
+                aPos++;
+                bPos++;
+            }
+            else if (termArray[aPos].exp < poly.termArray[bPos].exp) {
+                c.newTerm(poly.termArray[bPos].coef,
+                          poly.termArray[bPos].exp);
+                bPos++;
+            }
+            else {
+                c.newTerm(termArray[aPos].coef,
+                          termArray[aPos].exp);
+                aPos++;
+            }
         }
 
-        for (int i = 0; i < poly.terms; i++) {
-            result.AddTerm(
-                poly.termArray[i].coef,
-                poly.termArray[i].exp
-            );
+        for (; aPos < terms; aPos++) {
+            c.newTerm(termArray[aPos].coef, termArray[aPos].exp);
         }
 
-        return result;
+        for (; bPos < poly.terms; bPos++) {
+            c.newTerm(poly.termArray[bPos].coef,
+                      poly.termArray[bPos].exp);
+        }
+
+        return c;
     }
 
-  
-    Polynomial Mult(const Polynomial& poly) {
+    Polynomial Mult(Polynomial poly) const {
         Polynomial result;
 
         for (int i = 0; i < terms; i++) {
             for (int j = 0; j < poly.terms; j++) {
-                float c =
-                    termArray[i].coef * poly.termArray[j].coef;
-
-                int e =
-                    termArray[i].exp + poly.termArray[j].exp;
+                float c = termArray[i].coef * poly.termArray[j].coef;
+                int e = termArray[i].exp + poly.termArray[j].exp;
 
                 result.AddTerm(c, e);
             }
@@ -146,31 +164,36 @@ public:
         return result;
     }
 
-  
-    float Eval(float x) {
+    float Eval(float f) const {
         float result = 0;
 
         for (int i = 0; i < terms; i++) {
             result += termArray[i].coef *
-                      pow(x, termArray[i].exp);
+                      static_cast<float>(pow(f, termArray[i].exp));
         }
 
         return result;
     }
 
-    
-    void Print() {
+    void Print() const {
         if (terms == 0) {
             cout << "0" << endl;
             return;
         }
 
         for (int i = 0; i < terms; i++) {
-            if (i > 0)
-                cout << " + ";
+            float c = termArray[i].coef;
+            int e = termArray[i].exp;
 
-            cout << termArray[i].coef
-                 << "x^" << termArray[i].exp;
+            if (i > 0) {
+                if (c >= 0) cout << " + ";
+                else cout << " - ";
+            }
+            else if (c < 0) {
+                cout << "-";
+            }
+
+            cout << std::abs(c) << "x^" << e;
         }
 
         cout << endl;
@@ -178,32 +201,119 @@ public:
 };
 
 int main() {
-    Polynomial p, q;
+    char choice = 'y';
 
-    p.AddTerm(2, 2);
-    p.AddTerm(3, 1);
-    p.AddTerm(1, 0);
+    do {
+        Polynomial p, q;
+        int degree;
+        float coef, x;
+        bool valid = true;
 
-    q.AddTerm(1, 1);
-    q.AddTerm(2, 0);
+        cout << "===========================\n";
 
-    cout << "P(x) = ";
-    p.Print();
+        cout << "Enter degree of P: ";
+        cin >> degree;
 
-    cout << "Q(x) = ";
-    q.Print();
+        if (!cin || degree < 0 || degree > 99) {
+            cout << "Invalid degree" << endl;
+            cin.clear();
+            cin.ignore(10000, '\n');
+            valid = false;
+        }
 
-    Polynomial sum = p.Add(q);
+        if (valid) {
+            cout << "Enter coefficients from highest degree to 0: ";
 
-    cout << "P(x) + Q(x) = ";
-    sum.Print();
+            for (int i = degree; i >= 0; i--) {
+                cin >> coef;
 
-    Polynomial product = p.Mult(q);
+                if (!cin) {
+                    cout << "Invalid input" << endl;
+                    cin.clear();
+                    cin.ignore(10000, '\n');
+                    valid = false;
+                    break;
+                }
 
-    cout << "P(x) * Q(x) = ";
-    product.Print();
+                p.AddTerm(coef, i);
+            }
+        }
 
-    cout << "P(2) = " << p.Eval(2) << endl;
+        if (valid) {
+            cout << "Enter degree of Q: ";
+            cin >> degree;
+
+            if (!cin || degree < 0 || degree > 99) {
+                cout << "Invalid degree" << endl;
+                cin.clear();
+                cin.ignore(10000, '\n');
+                valid = false;
+            }
+        }
+
+        if (valid) {
+            cout << "Enter coefficients from highest degree to 0: ";
+
+            for (int i = degree; i >= 0; i--) {
+                cin >> coef;
+
+                if (!cin) {
+                    cout << "Invalid input" << endl;
+                    cin.clear();
+                    cin.ignore(10000, '\n');
+                    valid = false;
+                    break;
+                }
+
+                q.AddTerm(coef, i);
+            }
+        }
+
+        if (valid) {
+            cout << "\nP(x) = ";
+            p.Print();
+
+            cout << "Q(x) = ";
+            q.Print();
+
+            Polynomial sum = p.Add(q);
+
+            cout << "P(x) + Q(x) = ";
+            sum.Print();
+
+            Polynomial product = p.Mult(q);
+
+            cout << "P(x) * Q(x) = ";
+            product.Print();
+
+            cout << "\nEnter x value: ";
+            cin >> x;
+
+            if (cin) {
+                cout << "P(" << x << ") = " << p.Eval(x) << endl;
+                cout << "Q(" << x << ") = " << q.Eval(x) << endl;
+                cout << "P(0) = " << p.Eval(0) << endl;
+            }
+            else {
+                cout << "Invalid input" << endl;
+                cin.clear();
+                cin.ignore(10000, '\n');
+                valid = false;
+            }
+        }
+
+        if (!valid) {
+            cout << "Please enter the polynomial again." << endl;
+            continue;
+        }
+
+        cout << "\nDo you want to test another polynomial? (y/n): ";
+        cin >> choice;
+        cout << endl;
+
+    } while (choice == 'y' || choice == 'Y');
+
+    cout << "Program ended." << endl;
 
     return 0;
 }
